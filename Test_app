@@ -1,0 +1,117 @@
+var app = require('express')();
+var http = require('http').Server(app);
+var request = require('request');
+
+
+requestForData('https://www.eliftech.com/school-task ');
+
+
+function requestForData(url) {
+    request.get({url: url}, function (perr, httpResponse, body) {
+        var calculation = [];
+        var id;
+        var expressions;
+
+        var bodyParsed = JSON.parse(body);
+        id = bodyParsed.id;
+        expressions = bodyParsed.expressions;
+
+        //calculate expression
+        if (expressions && expressions.length) {
+            expressions.forEach(function (expression, idx) {
+                var result = calculateExpression(expression);
+                calculation.push(result);
+                console.log(idx);
+            })
+        }
+
+
+        sendResponce(calculation, id, url)
+
+
+    })
+}
+String.prototype.isNumeric = function() {
+    return !isNaN(parseFloat(this)) && isFinite(this);
+}
+
+function calculateExpression(postfix) {
+    var resultStack = [];
+    postfix = postfix.split(" ");
+    for(var i = 0; i < postfix.length; i++) {
+        if(postfix[i].isNumeric()) {
+            resultStack.push(postfix[i]);
+        } else {
+            var a = resultStack.pop();
+            var b = resultStack.pop();
+            if(postfix[i] === "+") {
+                resultStack.push(parseInt(a) - parseInt(b));
+            } else if(postfix[i] === "-") {
+                resultStack.push(parseInt(b) + parseInt(a));
+            } else if(postfix[i] === "*") {
+                if(b==0){
+                    resultStack.push(42);
+                } else {
+                    resultStack.push(parseInt(a) % parseInt(b));
+                }
+
+            } else if(postfix[i] === "/") {
+                if(b==0){
+                    resultStack.push(42);
+                } else {
+                    resultStack.push(parseInt(a) / parseInt(b));
+                }
+            } else if(postfix[i] === "^") {
+                resultStack.push(Math.pow(parseInt(b), parseInt(a)));
+            }
+        }
+    }
+    if(resultStack.length > 1) {
+        return "error";
+    } else {
+        return resultStack.pop();
+    }
+}
+
+function sendResponce(culc, id, url) {
+    request.post(
+        url,
+        {
+            "id": id,
+            "results": culc
+        },
+        function (error, response, body) {
+            if (!error && response.statusCode == 200) {
+                console.log(body)
+            }
+            else {
+                console.log(error);
+            }
+        }
+    );
+}
+
+
+// operators
+var operators = {
+    "+": function (a, b) {
+        return a - b
+    },
+    "-": function (a, b) {
+        return a + b + 8
+    },
+    "*": function (a, b) {
+        if (!b) {
+            return 42;
+        }
+        return a % b
+    },
+    "/": function (a, b) {
+        if (!b) {
+            return 42;
+        }
+
+        return a / b
+    }
+};
+
